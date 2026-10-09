@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Expense Tracker{% endblock %}
+{% block page_title %}Financial Dashboard{% endblock %}
+
+{% block content %}
+<!-- KPI Cards Row 1 -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-xl-4">
+        <div class="kpi-card kpi-income">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Total Income</div>
+                    <div class="kpi-value">₹{{ "%.2f"|format(total_income) }}</div>
+                    <div class="text-muted small">Lifetime earnings</div>
+                </div>
+                <div class="kpi-icon-wrapper bg-income-light">
+                    <i class="bi bi-wallet2"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-4">
+        <div class="kpi-card kpi-expense">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Total Expenses</div>
+                    <div class="kpi-value">₹{{ "%.2f"|format(total_expenses) }}</div>
+                    <div class="text-muted small">Lifetime spending</div>
+                </div>
+                <div class="kpi-icon-wrapper bg-expense-light">
+                    <i class="bi bi-cart-dash"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-4">
+        <div class="kpi-card kpi-balance">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Current Balance</div>
+                    <div class="kpi-value {% if current_balance < 0 %}text-danger{% else %}text-primary{% endif %}">
+                        ₹{{ "%.2f"|format(current_balance) }}
+                    </div>
+                    <div class="text-muted small">Net available funds</div>
+                </div>
+                <div class="kpi-icon-wrapper bg-balance-light">
+                    <i class="bi bi-bank"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-4">
+        <div class="kpi-card kpi-budget">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Monthly Budget</div>
+                    <div class="kpi-value">₹{{ "%.2f"|format(monthly_budget) }}</div>
+                    <div class="text-muted small">Target for {{ current_month_str }}</div>
+                </div>
+                <div class="kpi-icon-wrapper bg-budget-light">
+                    <i class="bi bi-calculator"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-4">
+        <div class="kpi-card kpi-remaining">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Remaining Budget</div>
+                    <div class="kpi-value {% if remaining_budget < 0 %}text-danger{% endif %}">
+                        ₹{{ "%.2f"|format(remaining_budget) }}
+                    </div>
+                    <div class="text-muted small">Available this month</div>
+                </div>
+                <div class="kpi-icon-wrapper bg-warning-light">
+                    <i class="bi bi-piggy-bank"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-4">
+        <div class="kpi-card kpi-savings">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Monthly Savings</div>
+                    <div class="kpi-value">₹{{ "%.2f"|format(monthly_savings) }}</div>
+                    <div class="text-muted small">Income - Expenses (This month)</div>
+                </div>
+                <div class="kpi-icon-wrapper bg-savings-light">
+                    <i class="bi bi-graph-up-arrow"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Budget Usage Progress Card -->
+<div class="card card-custom mb-4">
+    <div class="card-body p-4">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <div>
+                <h6 class="fw-bold mb-1"><i class="bi bi-speedometer text-primary me-2"></i>Monthly Budget Utilization ({{ current_month_str }})</h6>
+                <span class="text-muted small">Spent ₹{{ "%.2f"|format(monthly_expenses) }} of ₹{{ "%.2f"|format(monthly_budget) }}</span>
+            </div>
+            <div>
+                {% if budget_utilization > 100 %}
+                    <span class="badge bg-danger fs-6 px-3 py-2"><i class="bi bi-exclamation-triangle-fill me-1"></i> Budget Exceeded ({{ budget_utilization }}%)</span>
+                {% elif budget_utilization >= 80 %}
+                    <span class="badge bg-warning text-dark fs-6 px-3 py-2"><i class="bi bi-exclamation-diamond-fill me-1"></i> Warning: 80% Limit ({{ budget_utilization }}%)</span>
+                {% else %}
+                    <span class="badge bg-success fs-6 px-3 py-2"><i class="bi bi-check-circle-fill me-1"></i> {{ budget_utilization }}% Used</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="progress progress-custom" style="height: 12px;">
+            <div class="progress-bar {% if budget_utilization > 100 %}bg-danger{% elif budget_utilization >= 80 %}bg-warning{% else %}bg-success{% endif %}" 
+                 role="progressbar" 
+                 style="width: {{ budget_utilization if budget_utilization <= 100 else 100 }}%;" 
+                 aria-valuenow="{{ budget_utilization }}" 
+                 aria-valuemin="0" 
+                 aria-valuemax="100"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="row g-3 mb-4">
+    <!-- Monthly Spending Trend (Line Chart) -->
+    <div class="col-12 col-lg-8">
+        <div class="card card-custom h-100">
+            <div class="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex align-items-center justify-content-between">
+                <h6 class="fw-bold mb-0"><i class="bi bi-graph-up text-primary me-2"></i>Income vs Expense Trend (Last 6 Months)</h6>
+            </div>
+            <div class="card-body p-4">
+                <div style="height: 300px; position: relative;">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Expense Breakdown (Pie Chart) -->
+    <div class="col-12 col-lg-4">
+        <div class="card card-custom h-100">
+            <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                <h6 class="fw-bold mb-0"><i class="bi bi-pie-chart text-primary me-2"></i>Category Breakdown (Current Month)</h6>
+            </div>
+            <div class="card-body p-4 d-flex align-items-center justify-content-center">
+                <div style="height: 260px; width: 100%; position: relative;">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Transactions Table -->
+<div class="card card-custom">
+    <div class="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex align-items-center justify-content-between">
+        <h6 class="fw-bold mb-0"><i class="bi bi-clock-history text-primary me-2"></i>Recent Transactions</h6>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('income.index') }}" class="btn btn-sm btn-outline-success"><i class="bi bi-plus-lg"></i> Add Income</a>
+            <a href="{{ url_for('expenses.index') }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-dash-lg"></i> Add Expense</a>
+        </div>
+    </div>
+    <div class="card-body p-0 mt-3">
+        {% if recent_transactions %}
+        <div class="table-responsive">
+            <table class="table table-custom align-middle">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Title / Source</th>
+                        <th>Category</th>
+                        <th>Date</th>
+                        <th class="text-end">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in recent_transactions %}
+                    <tr>
+                        <td>
+                            {% if item.type == 'Income' %}
+                                <span class="badge badge-income"><i class="bi bi-arrow-down-left"></i> Income</span>
+                            {% else %}
+                                <span class="badge badge-expense"><i class="bi bi-arrow-up-right"></i> Expense</span>
+                            {% endif %}
+                        </td>
+                        <td class="fw-semibold">{{ item.title }}</td>
+                        <td><span class="badge bg-light text-dark border">{{ item.category }}</span></td>
+                        <td>{{ item.date }}</td>
+                        <td class="text-end fw-bold {% if item.type == 'Income' %}text-success{% else %}text-danger{% endif %}">
+                            {% if item.type == 'Income' %}+{% else %}-{% endif %}₹{{ "%.2f"|format(item.amount) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-receipt empty-state-icon"></i>
+            <h6>No recent transactions found</h6>
+            <p class="text-muted small">Start tracking your income and expenses to view your activity here.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
